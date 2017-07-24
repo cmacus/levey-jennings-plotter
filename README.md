@@ -6,9 +6,13 @@ i.e. sudo apt-get install gnuplot ttf-liberation
 First, create a file of values and put the obtained values line by line, name it for the test i.e 'glucose'
 
 3.1
+
 4.2
+
 3.4
+
 3.76
+
 ...
 
 Then run
