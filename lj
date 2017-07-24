@@ -1,0 +1,93 @@
+#!/usr/bin/perl -w
+# Utility to make Levy Jennings plot from given values
+# Need to install 'gnuplot' and 'ttf-liberation' first
+# i.e. sudo apt-get install gnuplot ttf-liberation
+# First, create a file 'values' and put the obtained values line by line, i.e
+# 3.1
+# 4.2
+# 3.4
+# 3.76
+# ...
+# Then paste this file in the same folder and run "./lj"
+use List::Util qw(min max);
+print "Name of test?";
+$test = <>;
+chomp($test);
+print "Month?";
+$month = <>;
+chomp($month);
+open(INFILE, $test);
+open(OUTFILE,">lines");
+while(<INFILE>)
+{
+    $arr[$count]=$_;
+    $sum += $_;
+    $count++;
+}
+$min = min(@arr);
+$max = max(@arr);
+chomp($min);
+chomp($max);
+$mean = $sum / $count;
+seek(INFILE,0,0);
+while(<INFILE>)
+{
+    $dev = $_ - $mean;
+    $devsq = $dev ** 2;
+    $sumofdevsq+=$devsq;
+}
+$variance = $sumofdevsq / ($count-1);
+$stdev = sqrt($variance);
+$ylow = $mean-4*$stdev;
+$yhigh = $mean+4*$stdev;
+$plusonesd = $mean+$stdev; $minusonesd = $mean-$stdev;
+$plustwosd = $mean+2*$stdev; $minustwosd = $mean-2*$stdev;
+$plusthreesd = $mean+3*$stdev; $minusthreesd = $mean-3*$stdev;
+print "Mean: ", $mean,"\n";
+print "Standard deviation: ", $stdev,"\n";
+print "Target?";
+$target = <>;
+$count=0;
+seek(INFILE,0,0);
+while(<INFILE>)
+{
+    print OUTFILE $count," ",$mean," ",$mean+$stdev," ",$mean+2*$stdev," ",$mean-$stdev," ",$mean-2*$stdev," ",$plusthreesd," ",$minusthreesd," ",$target;
+    $count++;
+}
+print OUTFILE $count," ",$mean," ",$mean+$stdev," ",$mean+2*$stdev," ",$mean-$stdev," ",$mean-2*$stdev," ",$plusthreesd," ",$minusthreesd," ",$target;
+close(OUTFILE);
+open(STANDARDFILE,">$test-std");
+seek(INFILE,0,0);
+while(<INFILE>)
+{
+    print STANDARDFILE ($_-$mean)/$stdev,"\n";
+}
+close(STANDARDFILE);
+close(INFILE);
+
+open(PLOTFILE, ">lj.p");
+print PLOTFILE<<END
+set title "$test for the month $month" font "Swiss 721,18"
+set xlabel "Days" font "Liberation Sans,12"
+set ylabel "Value" font "Liberation Sans,12"
+set nokey
+set terminal "png"
+set output "$test.png"
+END
+    ;
+print PLOTFILE "set xr [0:$count]\n";
+print PLOTFILE "set yr [$ylow-3*$stdev:$yhigh+3*$stdev]\n";
+print PLOTFILE "plot \"$test\" with linespoints pointtype 5 linetype 8,";
+print PLOTFILE<<END
+    "lines" using 1:2 title 'Mean' with lines lt 22 lw 2, \\
+    "lines" using 1:3 with lines lt 0, \\
+    "lines" using 1:4 with lines lt 0, \\
+    "lines" using 1:5 with lines lt 0, \\
+    "lines" using 1:6 with lines lt 0, \\
+    "lines" using 1:7 with lines lt 0, \\
+    "lines" using 1:8 with lines lt 0, \\
+    "lines" using 1:9 title 'Target' with lines lt 1 lw 2
+END
+    ;
+close(PLOTFILE);
+`gnuplot lj.p`;
